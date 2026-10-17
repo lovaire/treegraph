@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Belajar Tree dan Graph | Informatika Kelas 9</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+:root{
+  --bg:#f7f6f2; --card:#ffffff; --soft:#efede6;
+  --text:#1f1e1c; --text2:#5f5e5a; --muted:#888780;
+  --border:#d3d1c7; --border2:#b4b2a9;
+  --acc-bg:#e6f1fb; --acc-tx:#0c447c; --acc-bd:#85b7eb;
+  --ok-bg:#e1f5ee; --ok-tx:#085041; --ok-bd:#5dcaa5;
+  --warn:#ef9f27; --danger:#a32d2d; --success:#0f6e56;
+  --radius:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1c1c1a; --card:#2a2a28; --soft:#333331;
+    --text:#f1efe8; --text2:#b4b2a9; --muted:#888780;
+    --border:#444441; --border2:#5f5e5a;
+    --acc-bg:#0c447c; --acc-tx:#e6f1fb; --acc-bd:#378add;
+    --ok-bg:#085041; --ok-tx:#e1f5ee; --ok-bd:#1d9e75;
+    --danger:#f09595; --success:#5dcaa5;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.wrap{max-width:820px;margin:0 auto;padding:24px 16px 48px}
+header h1{font-size:24px;font-weight:600;margin:0}
+header p{color:var(--text2);margin:4px 0 0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-top:20px}
+.card h2{font-size:18px;font-weight:600;margin:0 0 4px}
+.card .hint{font-size:13px;color:var(--muted);margin:0}
+button{font:inherit;font-size:14px;color:var(--text);background:transparent;border:1px solid var(--border2);border-radius:var(--radius);padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+button:hover{background:var(--soft)}
+button:active{transform:scale(0.98)}
+.on{background:var(--acc-bg)!important;color:var(--acc-tx)!important;border-color:var(--acc-bd)!important}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.msg{font-size:15px;color:var(--text2);min-height:26px;margin:8px 0}
+.scroll{overflow-x:auto}
+.stage{position:relative;min-width:640px}
+.stage svg{position:absolute;left:0;top:0}
+.nd{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--card);font-size:13px;cursor:pointer;white-space:nowrap;user-select:none;color:var(--text)}
+.nd:hover{border-color:var(--text2)}
+.nd i{font-size:16px}
+.nd.cur{background:var(--acc-bg);color:var(--acc-tx);border-color:var(--acc-bd)}
+.nd.ok{background:var(--ok-bg);color:var(--ok-tx);border-color:var(--ok-bd)}
+.nd.tg{outline:2px dashed var(--warn);outline-offset:3px}
+.rl{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;font-size:11px;color:var(--muted)}
+.wt{position:absolute;transform:translate(-50%,-50%);font-size:11px;padding:1px 6px;border-radius:var(--radius);background:var(--soft);color:var(--text2)}
+.quiz{background:var(--soft);border-radius:12px;padding:16px 18px;margin-top:12px}
+#qtext{font-size:17px;margin:6px 0 4px}
+footer{text-align:center;font-size:12px;color:var(--muted);margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1><i class="ti ti-binary-tree"></i> Petualangan Tree dan Graph</h1>
+  <p>Informatika Kelas IX. Selesaikan tiga misi di bawah ini.</p>
+</header>
+
+<section class="card">
+  <h2>Misi 1: Jelajah tree</h2>
+  <p class="hint">Turun dari akar menuju target. Tidak boleh lompat ke samping.</p>
+  <div class="row">
+    <button data-th="folder" onclick="setTheme('folder')"><i class="ti ti-folder"></i> Folder laptop</button>
+    <button data-th="klas" onclick="setTheme('klas')"><i class="ti ti-paw"></i> Klasifikasi makhluk hidup</button>
+    <button data-th="angka" onclick="setTheme('angka')"><i class="ti ti-hash"></i> Angka acak</button>
+  </div>
+  <div class="row">
+    <button onclick="newMission()"><i class="ti ti-target"></i> Misi baru</button>
+    <button onclick="retry()"><i class="ti ti-refresh"></i> Ulangi</button>
+    <button id="rbtn" onclick="roles=!roles;this.classList.toggle('on',roles);drawTree()"><i class="ti ti-tag"></i> Tampilkan istilah</button>
+  </div>
+  <div id="tmsg" class="msg"></div>
+  <div class="scroll"><div id="tree" class="stage" style="height:270px"><svg id="tsvg" width="100%" height="270"></svg></div></div>
+</section>
+
+<section class="card">
+  <h2>Misi 2: Rute tercepat ke sekolah</h2>
+  <p class="hint">Angka di jalan adalah waktu tempuh (menit). Garis merah putus-putus berarti jalan ditutup.</p>
+  <div class="row">
+    <button onclick="resetRoute()"><i class="ti ti-refresh"></i> Ulangi rute</button>
+    <button onclick="shuffleW()"><i class="ti ti-arrows-shuffle"></i> Acak waktu tempuh</button>
+    <button onclick="closeRoad()"><i class="ti ti-barrier-block"></i> Tutup satu jalan</button>
+    <button onclick="revealBest()"><i class="ti ti-route"></i> Lihat rute terbaik</button>
+  </div>
+  <div id="gmsg" class="msg"></div>
+  <div class="scroll"><div id="graph" class="stage" style="height:300px"><svg id="gsvg" width="100%" height="300"></svg></div></div>
+</section>
+
+<section class="card">
+  <h2>Misi 3: Tree atau graph?</h2>
+  <p class="hint">Baca kasusnya, lalu tentukan struktur data yang paling cocok.</p>
+  <div class="quiz">
+    <div style="font-size:12px;color:var(--muted)" id="qnum"></div>
+    <div id="qtext"></div>
+    <div class="row" id="qbtns">
+      <button onclick="answer('t')"><i class="ti ti-binary-tree"></i> Tree</button>
+      <button onclick="answer('g')"><i class="ti ti-topology-star-3"></i> Graph</button>
+    </div>
+    <div id="qfb" class="msg"></div>
+    <button id="qnext" onclick="nextQ()" style="display:none">Kasus berikutnya <i class="ti ti-arrow-right"></i></button>
+  </div>
+</section>
+
+<footer>Media belajar Informatika SMP/MTs Kelas IX, Bab Berpikir Komputasional dalam Analisis Data</footer>
+</div>
+
+<script>
+const P=[-1,0,0,0,1,1,2,2,3,3];
+const TX=[50,16.7,50,83.3,8.3,25,41.7,58.3,75,91.7], TY=[28,128,128,128,228,228,228,228,228,228];
+const TH={
+  folder:{n:['Laptop','Dokumen','Foto','Game','Tugas','Surat','Liburan','Kelas','Catur','Balap'],
+          i:['ti-device-laptop','ti-folder','ti-folder','ti-folder','ti-file-text','ti-file-text','ti-photo','ti-photo','ti-chess','ti-car']},
+  klas:{n:['Makhluk hidup','Hewan','Tumbuhan','Jamur','Kucing','Ikan','Mangga','Padi','Tiram','Kuping'],
+        i:['ti-world','ti-paw','ti-plant','ti-mushroom','ti-cat','ti-fish','ti-apple','ti-plant-2','ti-mushroom','ti-mushroom']},
+  angka:{n:[],i:Array(10).fill('ti-hash')}
+};
+let th='folder',cur=0,tg=4,path=[0],roles=false,done=false;
+const rnd=n=>Math.floor(Math.random()*n);
+const kids=i=>P.map((p,j)=>p===i?j:-1).filter(j=>j>=0);
+const level=j=>{let l=0;while(P[j]>=0){j=P[j];l++}return l};
+const say=(id,t)=>document.getElementById(id).innerHTML=t;
+
+function setTheme(t){
+  th=t;
+  if(t==='angka'){let s=new Set();while(s.size<10)s.add(1+rnd(99));TH.angka.n=[...s].map(String)}
+  document.querySelectorAll('[data-th]').forEach(b=>b.classList.toggle('on',b.dataset.th===t));
+  newMission();
+}
+function newMission(){let o=tg;while(tg===o)tg=4+rnd(6);retry()}
+function retry(){
+  cur=0;path=[0];done=false;drawTree();
+  say('tmsg',`Turun dari akar "${TH[th].n[0]}" sampai ke "${TH[th].n[tg]}" (kotak bergaris putus-putus). Klik satu node di setiap langkah.`);
+}
+function drawTree(){
+  const box=document.getElementById('tree');
+  box.querySelectorAll('.nd').forEach(e=>e.remove());
+  let s='';
+  P.forEach((p,j)=>{
+    if(p<0)return;
+    const on=path.includes(j)&&path.includes(p);
+    s+=`<line x1="${TX[p]}%" y1="${TY[p]}" x2="${TX[j]}%" y2="${TY[j]}" style="stroke:${on?'#1D9E75':'var(--border2)'};stroke-width:${on?3:1.5}"/>`;
+  });
+  document.getElementById('tsvg').innerHTML=s;
+  TH[th].n.forEach((nm,j)=>{
+    const d=document.createElement('div');
+    const inPath=path.includes(j);
+    d.className='nd'+(j===cur&&!done?' cur':'')+(inPath&&(j!==cur||done)?' ok':'')+(j===tg?' tg':'');
+    d.style.left=TX[j]+'%';d.style.top=TY[j]+'px';
+    const role=j===0?'akar':kids(j).length?'cabang':'daun';
+    d.innerHTML=`<i class="ti ${TH[th].i[j]}"></i>${nm}`+(roles?`<span class="rl">${role}, level ${level(j)}</span>`:'');
+    d.onclick=()=>clickTree(j);
+    box.appendChild(d);
+  });
+}
+function clickTree(j){
+  if(done)return;
+  const nm=TH[th].n;
+  if(P[j]!==cur){
+    say('tmsg',j===cur?'Kamu sedang berada di sini.':`Dari "${nm[cur]}" kamu hanya bisa turun ke anaknya: ${kids(cur).map(k=>nm[k]).join(', ')}.`);
+    return;
+  }
+  cur=j;path.push(j);
+  if(j===tg){done=true;say('tmsg',`<span style="color:var(--success)">Ketemu dalam ${path.length-1} langkah.</span> Jalurnya ${path.map(k=>nm[k]).join(' → ')}. Di tree, jalan dari akar ke satu node selalu hanya ada satu.`)}
+  else if(!kids(j).length){done=true;say('tmsg',`<span style="color:var(--danger)">Buntu.</span> "${nm[j]}" adalah daun, jadi tidak punya anak. Di tree kamu tidak bisa menyeberang ke samping. Tekan Ulangi untuk mulai lagi dari akar.`)}
+  else say('tmsg',`Sekarang di "${nm[j]}" (level ${level(j)}). Pilih anak berikutnya.`);
+  drawTree();
+}
+
+const G={n:['Rumah','Warung','Taman','Pasar','Masjid','Perpustakaan','Sekolah'],
+  i:['ti-home','ti-building-store','ti-trees','ti-shopping-cart','ti-building-mosque','ti-books','ti-school'],
+  x:[7,28,28,50,72,72,93], y:[150,50,250,150,50,250,150]};
+let E=[[0,1,4],[0,2,6],[1,3,5],[2,3,3],[1,4,7],[3,4,4],[3,5,6],[2,5,9],[4,6,5],[5,6,3],[3,6,10]];
+let closed=-1,route=[0],best=null,gdone=false,total=0;
+const eIdx=(a,b)=>E.findIndex(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a));
+
+function dijkstra(){
+  const d=Array(7).fill(1e9),pv=Array(7).fill(-1),vis=Array(7).fill(false);d[0]=0;
+  for(let k=0;k<7;k++){
+    let u=-1;for(let v=0;v<7;v++)if(!vis[v]&&(u<0||d[v]<d[u]))u=v;
+    if(d[u]>=1e9)break;vis[u]=true;
+    E.forEach((e,i)=>{if(i===closed)return;const v=e[0]===u?e[1]:e[1]===u?e[0]:-1;if(v>=0&&d[u]+e[2]<d[v]){d[v]=d[u]+e[2];pv[v]=u}});
+  }
+  const p=[];let c=6;while(c>=0){p.unshift(c);c=pv[c]}
+  return {d:d[6],p};
+}
+const onPath=(p,a,b)=>p.some((v,k)=>k>0&&((p[k-1]===a&&v===b)||(p[k-1]===b&&v===a)));
+
+function drawGraph(){
+  const box=document.getElementById('graph');
+  box.querySelectorAll('.nd,.wt').forEach(e=>e.remove());
+  let s='';
+  E.forEach((e,i)=>{
+    const [a,b,w]=e;
+    let st='stroke:var(--border2);stroke-width:1.5';
+    if(i===closed)st='stroke:#E24B4A;stroke-width:2;stroke-dasharray:6 5';
+    else if(best&&onPath(best,a,b))st='stroke:#378ADD;stroke-width:4';
+    if(i!==closed&&onPath(route,a,b))st='stroke:#1D9E75;stroke-width:3';
+    s+=`<line x1="${G.x[a]}%" y1="${G.y[a]}" x2="${G.x[b]}%" y2="${G.y[b]}" style="${st}"/>`;
+    const l=document.createElement('div');
+    l.className='wt';l.style.left=(G.x[a]+G.x[b])/2+'%';l.style.top=(G.y[a]+G.y[b])/2+'px';
+    l.textContent=i===closed?'tutup':w+' mnt';
+    box.appendChild(l);
+  });
+  document.getElementById('gsvg').innerHTML=s;
+  G.n.forEach((nm,j)=>{
+    const d=document.createElement('div');
+    const last=route[route.length-1];
+    d.className='nd'+(j===last&&!gdone?' cur':'')+(route.includes(j)&&(j!==last||gdone)?' ok':'')+(j===6?' tg':'');
+    d.style.left=G.x[j]+'%';d.style.top=G.y[j]+'px';
+    d.innerHTML=`<i class="ti ${G.i[j]}"></i>${nm}`;
+    d.onclick=()=>clickGraph(j);
+    box.appendChild(d);
+  });
+}
+const routeText=()=>route.map(k=>G.n[k]).join(' → ');
+function clickGraph(j){
+  if(gdone)return;
+  const last=route[route.length-1];
+  if(j===last){say('gmsg','Kamu sedang berada di sini.');return}
+  const i=eIdx(last,j);
+  if(i<0){say('gmsg',`"${G.n[last]}" dan "${G.n[j]}" tidak terhubung langsung oleh jalan.`);return}
+  if(i===closed){say('gmsg','Jalan itu sedang ditutup. Cari jalur lain, inilah enaknya graph yang punya banyak jalan.');return}
+  if(route.includes(j)){say('gmsg','Kamu sudah lewat sana. Jangan muter-muter, nanti telat.');return}
+  route.push(j);total+=E[i][2];
+  if(j===6){
+    gdone=true;const b=dijkstra();
+    say('gmsg',total===b.d
+      ?`<span style="color:var(--success)">Sampai dalam ${total} menit lewat ${routeText()}.</span> Ini rute tercepat. Mantap!`
+      :`Sampai dalam ${total} menit. Ternyata ada rute ${b.d} menit. Tekan "Lihat rute terbaik" atau coba lagi.`);
+  } else say('gmsg',`Rute: ${routeText()}. Total ${total} menit.`);
+  drawGraph();
+}
+function resetRoute(){
+  route=[0];total=0;best=null;gdone=false;drawGraph();
+  say('gmsg','Berangkat dari Rumah menuju Sekolah. Klik tempat yang terhubung jalan satu per satu. Bisakah kamu menemukan rute paling cepat?');
+}
+function shuffleW(){E.forEach(e=>e[2]=2+rnd(9));resetRoute()}
+function closeRoad(){let o=closed;while(closed===o)closed=rnd(E.length);resetRoute();say('gmsg','Ada jalan ditutup karena perbaikan. Rute yang tadi tercepat mungkin sudah tidak bisa dipakai.')}
+function revealBest(){const b=dijkstra();best=b.p;drawGraph();say('gmsg',`Rute terbaik (garis biru): ${b.p.map(k=>G.n[k]).join(' → ')}, total ${b.d} menit.`)}
+
+const Q=[
+ ['Silsilah keluarga dari kakek sampai cucu','t','Bentuknya bertingkat dari satu leluhur ke bawah. Catatan kritis: kalau ayah dan ibu sama-sama dicatat, satu anak punya dua induk, sehingga sebenarnya mulai menjadi graph.'],
+ ['Jalur angkot yang menghubungkan beberapa terminal','g','Satu terminal bisa terhubung ke banyak terminal lain dan ada jalur memutar. Tidak ada satu akar di puncak.'],
+ ['Struktur pengurus OSIS dari ketua sampai anggota seksi','t','Ada satu puncak (ketua) dan setiap anggota punya satu atasan langsung.'],
+ ['Hubungan saling follow di media sosial','g','Siapa saja bisa terhubung dengan siapa saja, dan hubungannya bisa membentuk lingkaran.'],
+ ['Daftar isi buku: bab, subbab, dan sub-subbab','t','Setiap subbab hanya berada di bawah satu bab, jadi bertingkat rapi.'],
+ ['Jaring makanan di sawah: tikus, ular, elang, padi, belalang','g','Satu hewan bisa dimakan oleh beberapa pemangsa sekaligus. Kalau hanya satu rantai lurus, barulah mirip tree.'],
+ ['Peta lorong dan ruangan di sekolahmu','g','Dari satu ruangan bisa ada beberapa jalan ke ruangan lain, termasuk jalan memutar.'],
+ ['Folder dan file di laptop','t','Setiap file hanya berada di dalam satu folder, dan semuanya berawal dari satu drive.']
+];
+let qi=0,score=0,answered=false;
+function showQ(){
+  answered=false;
+  say('qnum',`Kasus ${qi+1} dari ${Q.length}, skor ${score}`);
+  say('qtext',Q[qi][0]);say('qfb','');
+  document.getElementById('qnext').style.display='none';
+}
+function answer(a){
+  if(answered)return;answered=true;
+  const ok=a===Q[qi][1];if(ok)score++;
+  say('qfb',`<span style="color:var(${ok?'--success':'--danger'})">${ok?'Tepat!':'Belum tepat.'}</span> ${Q[qi][2]}`);
+  say('qnum',`Kasus ${qi+1} dari ${Q.length}, skor ${score}`);
+  const nb=document.getElementById('qnext');
+  nb.style.display='inline-flex';
+  nb.innerHTML=qi===Q.length-1?`Skor akhir ${score}/${Q.length}. Main lagi <i class="ti ti-refresh"></i>`:'Kasus berikutnya <i class="ti ti-arrow-right"></i>';
+}
+function nextQ(){if(qi===Q.length-1){qi=0;score=0}else qi++;showQ()}
+
+setTheme('folder');resetRoute();showQ();
+</script>
+</body>
+</html>
