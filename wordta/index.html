@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JKT48 Wordle - Tebak Member</title>
+    <style>
+        :root {
+            --jkt-red: #E31E24;
+            --jkt-dark: #121213;
+            --color-correct: #538D4E;
+            --color-present: #B59F3B;
+            --color-absent: #818384;
+            --color-default: #ffffff;
+            --key-bg: #d3d6da;
+            --key-text: #000000;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body {
+            background-color: var(--jkt-dark);
+            color: var(--color-default);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            border-bottom: 1px solid #3a3a3c;
+            width: 100%;
+            text-align: center;
+            padding: 1rem 0;
+            margin-bottom: 1rem;
+        }
+
+        h1 { font-size: 1.8rem; letter-spacing: 2px; color: var(--jkt-red); text-transform: uppercase; }
+        .subtitle { font-size: 0.9rem; color: #aaa; margin-top: 5px; }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 500px;
+            flex-grow: 1;
+            padding: 10px;
+        }
+
+        #board {
+            display: grid;
+            grid-gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .tile {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #3a3a3c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .tile[data-state="active"] { border-color: #818384; animation: pop 0.1s; }
+        .tile[data-state="correct"] { background-color: var(--color-correct); border-color: var(--color-correct); }
+        .tile[data-state="present"] { background-color: var(--color-present); border-color: var(--color-present); }
+        .tile[data-state="absent"] { background-color: var(--color-absent); border-color: var(--color-absent); }
+        
+        .tile.flip { animation: flip 0.5s ease forwards; }
+
+        #keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .key {
+            background-color: var(--key-bg);
+            color: var(--key-text);
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            height: 58px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-transform: uppercase;
+            flex: 1;
+            max-width: 45px;
+            user-select: none;
+            transition: background-color 0.3s;
+        }
+
+        .key.wide { max-width: 70px; font-size: 0.8rem; }
+        .key[data-state="correct"] { background-color: var(--color-correct); color: white; }
+        .key[data-state="present"] { background-color: var(--color-present); color: white; }
+        .key[data-state="absent"] { background-color: var(--color-absent); color: white; }
+
+        #message-container {
+            position: fixed;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            background-color: white;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            opacity: 1;
+            transition: opacity 0.5s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .hidden { display: none !important; }
+
+        #modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .modal-content {
+            background: white;
+            color: black;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 90%;
+            width: 350px;
+        }
+
+        .modal-content h2 { color: var(--jkt-red); margin-bottom: 1rem; }
+        .modal-content p { margin-bottom: 1.5rem; font-size: 1.1rem; }
+        
+        button {
+            background-color: var(--jkt-red);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        button:hover { background-color: #c4181d; }
+
+        @keyframes pop { 50% { transform: scale(1.1); } }
+        @keyframes flip {
+            0% { transform: rotateX(0); }
+            50% { transform: rotateX(90deg); }
+            100% { transform: rotateX(0); }
+        }
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px); }
+            20%, 80% { transform: translateX(2px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
+        }
+        .shake { animation: shake 0.5s; }
+
+        @media (max-width: 500px) {
+            .tile { width: 40px; height: 40px; font-size: 1.4rem; }
+            .key { height: 50px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>JKT48 WORDLE</h1>
+        <div class="subtitle">Tebak nama panggilan member (aktif & ex)</div>
+    </header>
+
+    <div id="message-container"></div>
+
+    <div id="game-container">
+        <div id="board"></div>
+        <div id="keyboard"></div>
+    </div>
+
+    <div id="modal" class="hidden">
+        <div class="modal-content">
+            <h2 id="modal-title"></h2>
+            <p id="modal-message"></p>
+            <button onclick="initGame()">Main Lagi</button>
+        </div>
+    </div>
+
+    <script>
+        // Database nama panggilan member JKT48 (dieksktraksi dari data, lowercase, unik, panjang 3-8 huruf)
+        const rawNames = [
+            "icha","mova","ayana","akicha","beby","cindy","cleo","delima","kinal","diasta","fira","frieska","gaby","ghaida","haruka","intania","jeje","ve","melody","nabilah","ochi","rena","dhike","rica","sendy","shanju","gaya","sonia","sonya","stella",
+            "acha","althea","nichan","yupi","della","delli","dena","uty","shafa","kariin","hanna","rachel","lidya","dhifa","nadila","nat","noella","nobi","imoy","octi","olive","sisil","viny","ikha","rona","saktia","naomi","sinka","tata","vanka","yona","chikarina",
+            "feni","cia","manda","andela","anggie","anin","okta","chika","elaine","farina","sisca","indah","kei","desy","grace","michelle","milen","nadse","aurel","nina","pipit","farin","yukka","afa","shani","gracia","sofia","stefi","angel","tya","cesen","zebi",
+            "lisa","christi","cinhap","fia","jessica","jinan","devi","mega","melati","lintang","celine","yuri",
+            "zara","anggi","citra","chintya","diani","ori","eve","aby","kyla","helma","aya","pucchi","gina","sanda","ruth","julie","violet",
+            "gita","ella","tasya","ariel","denise","erika","sintia","ciel","jee","indy","riri","nanda","amel","shalza",
+            "christy","olla","freya","eli","jessi","muthe","aiko","yori","zee","lea","dey","febi","bri","brielle","jesslyn","kanya","lala","rifa","vivi",
+            "oniel","fiony","lulu","afiqah","mira","nunu","devytha","erichan","flora","vany","keisya","ratu","pamela","reva","adel","alma","ume","ara",
+            "kathrina","marsha","ashel","caithlyn","chalista","abel","iris","nabila","olivia","zahra","shinta","tiara",
+            "lia","lyn","raisha","abieza","giselle","amanda","callie","danessa","indira","naura",
+            "anindya","elin","cynthia","danella","daisy","gracie","greesel","michie","alya","aulia","cathy","chelsea","gendis","jeane",
+            "aralie","delynn","lana","erine","fritzy","lily","trisha","kimmy","nala","ribka","oline","nachia","nayla","levi","shasa","regie","moreen",
+            "virgi","rilly","giaa","maira","ekin","jemima","mikaela","intan","auwia",
+            "fera","carissa","bella","fahira","rara","heidi","maxine","jazzy","ralyne","sona","maegan",
+            "sayaya","kanaia","tana","pia","sami","maura","isha"
+        ];
+
+        // Filter: unik, hanya huruf, panjang 3-8 karakter (agar game tidak terlalu mudah/sulit)
+        const VALID_GUESSES = [...new Set(rawNames)].filter(name => /^[a-z]+$/.test(name) && name.length >= 3 && name.length <= 8);
+
+        let targetWord = "";
+        let wordLength = 0;
+        let currentGuess = "";
+        let guesses = [];
+        let maxGuesses = 6;
+        let isGameOver = false;
+
+        const board = document.getElementById("board");
+        const keyboard = document.getElementById("keyboard");
+        const modal = document.getElementById("modal");
+
+        function initGame() {
+            modal.classList.add("hidden");
+            targetWord = VALID_GUESSES[Math.floor(Math.random() * VALID_GUESSES.length)];
+            wordLength = targetWord.length;
+            currentGuess = "";
+            guesses = [];
+            isGameOver = false;
+
+            // Set dynamic grid columns
+            board.style.gridTemplateColumns = `repeat(${wordLength}, 1fr)`;
+            
+            createBoard();
+            createKeyboard();
+            console.log("Debug - Target:", targetWord); // Hapus atau komentari ini saat production jika ingin benar-benar rahasia
+        }
+
+        function createBoard() {
+            board.innerHTML = "";
+            for (let i = 0; i < maxGuesses * wordLength; i++) {
+                const tile = document.createElement("div");
+                tile.classList.add("tile");
+                tile.id = `tile-${i}`;
+                board.appendChild(tile);
+            }
+        }
+
+        function createKeyboard() {
+            keyboard.innerHTML = "";
+            const rows = [
+                "qwertyuiop",
+                "asdfghjkl",
+                "zxcvbnm"
+            ];
+
+            rows.forEach((rowStr, index) => {
+                const rowDiv = document.createElement("div");
+                rowDiv.classList.add("keyboard-row");
+                
+                if (index === 2) {
+                    const enterKey = createKey("ENTER", "wide");
+                    enterKey.onclick = handleEnter;
+                    rowDiv.appendChild(enterKey);
+                }
+
+                for (let char of rowStr) {
+                    const key = createKey(char);
+                    key.onclick = () => handleInput(char);
+                    rowDiv.appendChild(key);
+                }
+
+                if (index === 2) {
+                    const backspaceKey = createKey("⌫", "wide");
+                    backspaceKey.onclick = handleBackspace;
+                    rowDiv.appendChild(backspaceKey);
+                }
+
+                keyboard.appendChild(rowDiv);
+            });
+        }
+
+        function createKey(char, extraClass = "") {
+            const key = document.createElement("div");
+            key.classList.add("key");
+            if (extraClass) key.classList.add(extraClass);
+            key.textContent = char;
+            key.dataset.key = char.toLowerCase();
+            return key;
+        }
+
+        function handleInput(char) {
+            if (isGameOver) return;
+            if (currentGuess.length < wordLength) {
+                currentGuess += char;
+                updateBoard();
+            }
+        }
+
+        function handleBackspace() {
+            if (isGameOver) return;
+            if (currentGuess.length > 0) {
+                currentGuess = currentGuess.slice(0, -1);
+                updateBoard();
+            }
+        }
+
+        function handleEnter() {
+            if (isGameOver) return;
+            if (currentGuess.length !== wordLength) {
+                showMessage("Kurang huruf!");
+                shakeRow();
+                return;
+            }
+
+            if (!VALID_GUESSES.includes(currentGuess)) {
+                showMessage("Nama tidak dikenal di daftar!");
+                shakeRow();
+                return;
+            }
+
+            evaluateGuess();
+        }
+
+        function updateBoard() {
+            const rowStart = guesses.length * wordLength;
+            for (let i = 0; i < wordLength; i++) {
+                const tile = document.getElementById(`tile-${rowStart + i}`);
+                tile.textContent = currentGuess[i] || "";
+                tile.dataset.state = currentGuess[i] ? "active" : "empty";
+            }
+        }
+
+        function evaluateGuess() {
+            const rowStart = guesses.length * wordLength;
+            const guessArray = currentGuess.split("");
+            const targetArray = targetWord.split("");
+            const result = Array(wordLength).fill("absent");
+
+            // First pass: correct position (green)
+            for (let i = 0; i < wordLength; i++) {
+                if (guessArray[i] === targetArray[i]) {
+                    result[i] = "correct";
+                    targetArray[i] = null; // Mark as used
+                    guessArray[i] = null;
+                }
+            }
+
+            // Second pass: wrong position (yellow)
+            for (let i = 0; i < wordLength; i++) {
+                if (guessArray[i] !== null) {
+                    const foundIndex = targetArray.indexOf(guessArray[i]);
+                    if (foundIndex !== -1) {
+                        result[i] = "present";
+                        targetArray[foundIndex] = null; // Mark as used
+                    }
+                }
+            }
+
+            // Animate and apply colors
+            for (let i = 0; i < wordLength; i++) {
+                const tile = document.getElementById(`tile-${rowStart + i}`);
+                setTimeout(() => {
+                    tile.classList.add("flip");
+                    tile.dataset.state = result[i];
+                    updateKeyboard(currentGuess[i], result[i]);
+                }, i * 250);
+            }
+
+            setTimeout(() => {
+                if (currentGuess === targetWord) {
+                    isGameOver = true;
+                    showModal("Selamat! 🎉", `Kamu berhasil menebak: ${targetWord.toUpperCase()}`);
+                } else if (guesses.length === maxGuesses - 1) {
+                    isGameOver = true;
+                    showModal("Game Over", `Member yang dimaksud adalah: ${targetWord.toUpperCase()}`);
+                } else {
+                    guesses.push(currentGuess);
+                    currentGuess = "";
+                }
+            }, wordLength * 250 + 100);
+        }
+
+        function updateKeyboard(char, state) {
+            const key = document.querySelector(`.key[data-key="${char}"]`);
+            if (!key) return;
+            
+            const currentState = key.dataset.state;
+            // Priority: correct > present > absent
+            if (state === "correct") {
+                key.dataset.state = "correct";
+            } else if (state === "present" && currentState !== "correct") {
+                key.dataset.state = "present";
+            } else if (state === "absent" && currentState !== "correct" && currentState !== "present") {
+                key.dataset.state = "absent";
+            }
+        }
+
+        function shakeRow() {
+            const rowStart = guesses.length * wordLength;
+            for (let i = 0; i < wordLength; i++) {
+                document.getElementById(`tile-${rowStart + i}`).classList.add("shake");
+            }
+            setTimeout(() => {
+                for (let i = 0; i < wordLength; i++) {
+                    document.getElementById(`tile-${rowStart + i}`).classList.remove("shake");
+                }
+            }, 500);
+        }
+
+        function showMessage(msg) {
+            const container = document.getElementById("message-container");
+            const el = document.createElement("div");
+            el.classList.add("message");
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = "0";
+                setTimeout(() => el.remove(), 500);
+            }, 2000);
+        }
+
+        function showModal(title, msg) {
+            document.getElementById("modal-title").textContent = title;
+            document.getElementById("modal-message").textContent = msg;
+            modal.classList.remove("hidden");
+        }
+
+        // Physical keyboard support
+        document.addEventListener("keydown", (e) => {
+            if (isGameOver) return;
+            const key = e.key.toLowerCase();
+            if (key === "enter") {
+                handleEnter();
+            } else if (key === "backspace") {
+                handleBackspace();
+            } else if (/^[a-z]$/.test(key)) {
+                handleInput(key);
+            }
+        });
+
+        // Start game on load
+        initGame();
+    </script>
+</body>
+</html>
